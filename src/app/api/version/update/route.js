@@ -2,6 +2,12 @@ import { NextResponse } from "next/server";
 import { killAppProcesses, spawnUpdaterAndExit } from "@/lib/appUpdater";
 
 export async function POST() {
+  if (process.env.VERCEL === "1") {
+    return NextResponse.json(
+      { success: false, message: "Vercel deployments update through Git commits and automatic redeploys; in-app npm updates are unavailable." },
+      { status: 501 },
+    );
+  }
   if (process.env.NODE_ENV !== "production") {
     return NextResponse.json(
       { success: false, message: "Update is only available in production build (9router CLI)" },

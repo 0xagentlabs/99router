@@ -5,6 +5,9 @@ import os from "os";
 const APP_NAME = "9router";
 
 function defaultDir() {
+  // Vercel functions have a writable /tmp directory but do not guarantee that
+  // os.homedir() exists. Persistent state is handled by the Vercel DB adapter.
+  if (process.env.VERCEL === "1") return path.join(os.tmpdir(), APP_NAME);
   if (process.platform === "win32") {
     return path.join(process.env.APPDATA || path.join(os.homedir(), "AppData", "Roaming"), APP_NAME);
   }

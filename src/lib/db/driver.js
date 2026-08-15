@@ -52,12 +52,30 @@ async function trySqlJs() {
   }
 }
 
+async function tryVercelPostgres() {
+  if (process.env.VERCEL !== "1" || !process.env.POSTGRES_URL) return null;
+  try {
+    const { createVercelPostgresSqliteAdapter } = await import("./adapters/vercelPostgresAdapter.js");
+    const { createSqlJsAdapter } = await import("./adapters/sqljsAdapter.js");
+    return await createVercelPostgresSqliteAdapter(createSqlJsAdapter);
+  } catch (e) {
+    console.warn(`[DB] Vercel Postgres snapshot unavailable: ${e.message}`);
+    return null;
+  }
+}
+
 async function initAdapter() {
-  ensureDirs();
+  // Vercel's deployment filesystem is read-only. The Postgres adapter uses
+  // /tmp for its per-invocation SQLite working copy.
+  if (process.env.VERCEL !== "1") ensureDirs();
   // Order per runtime:
   //   Bun:  bun:sqlite → sql.js
   //   Node: better-sqlite3 → node:sqlite (≥22.5) → sql.js
-  let adapter = await tryBunSqlite();
+  let adapter = await tryVercelPostgres();
+  if (process.env.VERCEL === "1" && !adapter) {
+    throw new Error("[DB] Vercel requires POSTGRES_URL; local SQLite is not writable in the Vercel runtime");
+  }
+  if (!adapter) adapter = await tryBunSqlite();
   if (!adapter) adapter = await tryBetterSqlite();
   if (!adapter) adapter = await tryNodeSqlite();
   if (!adapter) adapter = await trySqlJs();
@@ -70,6 +88,9 @@ async function initAdapter() {
 
   const { runMigrationOnce } = await import("./migrate.js");
   await runMigrationOnce(adapter);
+  // Ensure a brand-new Vercel database receives the schema snapshot before
+  // the serverless invocation is allowed to finish.
+  if (adapter.flush) await adapter.flush();
   return adapter;
 }
 

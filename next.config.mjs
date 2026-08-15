@@ -28,6 +28,12 @@ const nextConfig = {
   outputFileTracingExcludes: {
     "*": ["./gitbook/**/*"]
   },
+  // sql.js loads its WASM binary dynamically at runtime. Explicitly include
+  // it in Vercel/standalone serverless output; otherwise DB-backed requests
+  // fail with ENOENT after deployment even though local builds pass.
+  outputFileTracingIncludes: {
+    "/*": ["./node_modules/sql.js/dist/sql-wasm.wasm"]
+  },
   images: {
     unoptimized: true
   },

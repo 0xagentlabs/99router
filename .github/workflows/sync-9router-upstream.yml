@@ -1,0 +1,39 @@
+name: Sync 9Router upstream
+
+on:
+  schedule:
+    - cron: "17 3 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch upstream
+        run: git remote add upstream https://github.com/decolua/9router.git && git fetch upstream master
+
+      - name: Create sync branch
+        run: |
+          git checkout -B upstream-sync
+          git merge --no-edit upstream/master
+
+      - name: Open update pull request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          branch: automation/9router-upstream
+          delete-branch: true
+          title: "chore: sync 9router upstream"
+          commit-message: "chore: sync 9router upstream"
+          body: |
+            Automated sync from `decolua/9router:master`.
+
+            Review conflicts and Vercel-specific files before merging. Vercel
+            will redeploy automatically after this PR reaches the deployment branch.

@@ -10,7 +10,7 @@ async function loadSql() {
   return SQL;
 }
 
-export async function createSqlJsAdapter(filePath) {
+export async function createSqlJsAdapter(filePath, { onPersist } = {}) {
   const SQLLib = await loadSql();
   const buf = fs.existsSync(filePath) ? fs.readFileSync(filePath) : null;
   const db = new SQLLib.Database(buf);
@@ -23,8 +23,15 @@ export async function createSqlJsAdapter(filePath) {
 
   function persist() {
     const data = db.export();
-    fs.writeFileSync(filePath, Buffer.from(data));
+    const bytes = Buffer.from(data);
+    fs.writeFileSync(filePath, bytes);
+    // Remote persistence is intentionally best-effort. The local SQLite
+    // instance remains the source of truth for the current invocation.
     dirty = false;
+    if (onPersist) return Promise.resolve(onPersist(bytes)).catch((e) => {
+      console.error(`[sqljs] remote save failed: ${e.message}`);
+    });
+    return Promise.resolve();
   }
 
   function scheduleSave() {
@@ -111,5 +118,5 @@ export async function createSqlJsAdapter(filePath) {
   process.on("SIGINT", flush);
   process.on("SIGTERM", flush);
 
-  return { driver: "sql.js", run, get, all, exec, transaction, close, raw: db };
+  return { driver: "sql.js", run, get, all, exec, transaction, close, flush: persist, raw: db };
 }
