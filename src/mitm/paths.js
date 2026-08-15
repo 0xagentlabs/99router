@@ -5,6 +5,11 @@ const os = require("os");
 const APP_NAME = "9router";
 
 function defaultDir() {
+  // Vercel functions have a writable /tmp directory, but their home
+  // directory is not guaranteed to exist. MITM is disabled there, however
+  // its modules are still imported by the dashboard layout, so path
+  // resolution must remain safe at module load time.
+  if (process.env.VERCEL === "1") return path.join(os.tmpdir(), APP_NAME);
   if (process.platform === "win32") {
     return path.join(process.env.APPDATA || path.join(os.homedir(), "AppData", "Roaming"), APP_NAME);
   }
