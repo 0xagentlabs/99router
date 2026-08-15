@@ -37,7 +37,10 @@ const nextConfig = {
   images: {
     unoptimized: true
   },
-  env: {},
+  env: {
+    // Expose only a non-sensitive deployment label to client components.
+    NEXT_PUBLIC_DEPLOYMENT_MODE: process.env.VERCEL === "1" ? "vercel" : "local",
+  },
   experimental: {
     // #1529/#1572: LLM clients can send long context or base64 image payloads through /v1 rewrites.
     proxyClientMaxBodySize,

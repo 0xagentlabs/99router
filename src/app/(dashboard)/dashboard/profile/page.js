@@ -20,6 +20,7 @@ function getLocaleFromCookie() {
 }
 
 export default function ProfilePage() {
+  const isVercelDeployment = process.env.NEXT_PUBLIC_DEPLOYMENT_MODE === "vercel";
   const { theme, setTheme, isDark } = useTheme();
   const [locale, setLocale] = useState(() => getLocaleFromCookie());
   const [langOpen, setLangOpen] = useState(false);
@@ -760,16 +761,18 @@ export default function ProfilePage() {
   return (
     <div className="max-w-2xl mx-auto px-4 sm:px-0">
       <div className="flex flex-col gap-6">
-        {/* Local Mode Info */}
+        {/* Deployment and persistence info */}
         <Card>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
             <div className="flex items-center gap-3 sm:gap-4">
               <div className="size-10 sm:size-12 rounded-lg bg-green-500/10 text-green-500 flex items-center justify-center shrink-0">
-                <span className="material-symbols-outlined text-xl sm:text-2xl">computer</span>
+                <span className="material-symbols-outlined text-xl sm:text-2xl">{isVercelDeployment ? "cloud" : "computer"}</span>
               </div>
               <div>
-                <h2 className="text-lg sm:text-xl font-semibold">Local Mode</h2>
-                <p className="text-sm text-text-muted">Running on your machine</p>
+                <h2 className="text-lg sm:text-xl font-semibold">{isVercelDeployment ? "Vercel Mode" : "Local Mode"}</h2>
+                <p className="text-sm text-text-muted">
+                  {isVercelDeployment ? "Running as a serverless deployment" : "Running on your machine"}
+                </p>
               </div>
             </div>
             <div className="inline-flex p-1 rounded-lg bg-black/5 dark:bg-white/5 w-full sm:w-auto">
@@ -797,7 +800,14 @@ export default function ProfilePage() {
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 rounded-lg bg-bg border border-border gap-2">
               <div>
                 <p className="font-medium text-sm sm:text-base">Database Location</p>
-                <p className="text-xs sm:text-sm text-text-muted font-mono break-all">~/.9router/db/data.sqlite</p>
+                <p className="text-xs sm:text-sm text-text-muted font-mono break-all">
+                  {isVercelDeployment ? "Neon Postgres (durable)" : "~/.9router/db/data.sqlite"}
+                </p>
+                {isVercelDeployment && (
+                  <p className="text-xs text-text-muted mt-1">
+                    SQLite runs temporarily in the function; persistent data is stored in Vercel-connected Postgres.
+                  </p>
+                )}
               </div>
             </div>
             <div className="flex flex-col sm:flex-row gap-2">
@@ -1639,7 +1649,9 @@ export default function ProfilePage() {
         {/* App Info */}
         <div className="text-center text-xs sm:text-sm text-text-muted py-4">
           <p>{APP_CONFIG.name} v{APP_CONFIG.version}</p>
-          <p className="mt-1">Local Mode - All data stored on your machine</p>
+          <p className="mt-1">
+            {isVercelDeployment ? "Vercel Mode - Data stored in connected Postgres" : "Local Mode - All data stored on your machine"}
+          </p>
         </div>
       </div>
 
