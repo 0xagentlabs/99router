@@ -13,6 +13,7 @@ const execAsync = promisify(exec);
 const getCodexDir = () => path.join(os.homedir(), ".codex");
 const getCodexConfigPath = () => path.join(getCodexDir(), "config.toml");
 const getCodexAuthPath = () => path.join(getCodexDir(), "auth.json");
+const isRemoteDeployment = process.env.VERCEL === "1";
 
 // Flatten confbox-parsed TOML into a writable object, preserving nested tables
 const parsedToWritable = (obj) => obj ?? {};
@@ -82,6 +83,19 @@ const has9RouterConfig = (config) => {
 // GET - Check codex CLI and read current settings
 export async function GET() {
   try {
+    // The Codex CLI belongs to the user's machine. A Vercel function cannot
+    // inspect or modify the user's ~/.codex, and writing the function's
+    // temporary filesystem would misleadingly report a successful setup.
+    if (isRemoteDeployment) {
+      return NextResponse.json({
+        installed: false,
+        config: null,
+        remoteOnly: true,
+        writable: false,
+        message: "Remote deployment: copy the manual Codex configuration to your local machine",
+      });
+    }
+
     const isInstalled = await checkCodexInstalled();
     
     if (!isInstalled) {
@@ -109,6 +123,13 @@ export async function GET() {
 // POST - Update 9Router settings (merge with existing config)
 export async function POST(request) {
   try {
+    if (isRemoteDeployment) {
+      return NextResponse.json({
+        error: "Codex settings must be applied on the local machine",
+        code: "manual_configuration_required",
+      }, { status: 409 });
+    }
+
     const { baseUrl, apiKey, model, subagentModel } = await request.json();
     
     if (!baseUrl || !apiKey || !model) {
@@ -178,6 +199,13 @@ export async function POST(request) {
 // DELETE - Remove 9Router settings only (keep other settings)
 export async function DELETE() {
   try {
+    if (isRemoteDeployment) {
+      return NextResponse.json({
+        error: "Codex settings must be reset on the local machine",
+        code: "manual_configuration_required",
+      }, { status: 409 });
+    }
+
     const configPath = getCodexConfigPath();
 
     // Read and parse existing config

@@ -228,8 +228,14 @@ model = "${effectiveSubagentModel}"
                 <div className="flex items-start gap-3">
                   <span className="material-symbols-outlined text-yellow-500">warning</span>
                   <div className="flex-1">
-                    <p className="font-medium text-yellow-600 dark:text-yellow-400">Codex CLI not detected locally</p>
-                    <p className="text-sm text-text-muted">Manual configuration is still available if 9router is deployed on a remote server.</p>
+                    <p className="font-medium text-yellow-600 dark:text-yellow-400">
+                      {codexStatus?.remoteOnly ? "Remote 9Router deployment" : "Codex CLI not detected locally"}
+                    </p>
+                    <p className="text-sm text-text-muted">
+                      {codexStatus?.remoteOnly
+                        ? "Codex runs on your machine. Copy the manual configuration below into your local Codex files."
+                        : "Manual configuration is still available if 9router is deployed on a remote server."}
+                    </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 pl-9">
